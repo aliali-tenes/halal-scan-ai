@@ -1,0 +1,92 @@
+import React, { useState, useRef } from 'react';
+
+export default function App() {
+  const [image, setImage] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<any>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64 = (reader.result as string).split(',')[1];
+        setImage(reader.result as string);
+        analyzeImage(base64);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const analyzeImage = async (base64: string) => {
+    setLoading(true);
+    try {
+      const resp = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ base64Data: base64 })
+      });
+      const data = await resp.json();
+      setResult(data);
+    } catch (err) {
+      alert("خطأ في الاتصال بالخادم");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-50 p-4 flex flex-col items-center">
+      <header className="mb-8 text-center mt-6">
+        <h1 className="text-4xl font-black text-emerald-600">HalalScan <span class="text-slate-800">AI</span></h1>
+        <p className="text-slate-500 text-sm mt-2">كاشف المكونات بذكاء Gemini</p>
+      </header>
+
+      {!result ? (
+        <div className="w-full max-w-md bg-white p-10 rounded-[2.5rem] shadow-xl text-center border-4 border-dashed border-emerald-100">
+          {loading ? (
+            <div className="space-y-4">
+              <div className="w-16 h-16 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+              <p className="font-bold text-emerald-600 animate-pulse">جاري التحليل فقهياً وكيميائياً...</p>
+            </div>
+          ) : (
+            <>
+              <div className="text-7xl mb-6">📸</div>
+              <button 
+                onClick={() => fileInputRef.current?.click()}
+                className="w-full bg-emerald-600 text-white py-5 rounded-2xl font-bold text-xl shadow-lg shadow-emerald-200 active:scale-95 transition-transform"
+              >
+                التقط صورة المكونات
+              </button>
+            </>
+          )}
+          <input type="file" ref={fileInputRef} className="hidden" accept="image/*" capture="environment" onChange={handleImageUpload} />
+        </div>
+      ) : (
+        <div className={`w-full max-w-md p-8 rounded-[2.5rem] shadow-2xl border-b-8 animate-in slide-in-from-bottom-10 duration-500 ${result.status === 'halal' ? 'bg-green-50 border-green-500' : 'bg-red-50 border-red-500'}`}>
+          <div className="text-center mb-6">
+             <span className="text-6xl">{result.status === 'halal' ? '✅' : '❌'}</span>
+             <h2 className={`text-4xl font-black mt-4 ${result.status === 'halal' ? 'text-green-700' : 'text-red-700'}`}>
+               {result.status === 'halal' ? 'حلال مسموح' : 'غير حلال'}
+             </h2>
+          </div>
+          
+          <div className="bg-white/60 backdrop-blur-md p-6 rounded-3xl space-y-4 text-right dir-rtl">
+            <p className="text-lg leading-relaxed"><strong className="text-slate-900">النتيجة:</strong> {result.recommendation}</p>
+            <p className="text-slate-600 italic"><strong>التفاصيل:</strong> {result.reason}</p>
+            
+            {result.haramIngredients?.length > 0 && (
+              <div className="p-4 bg-red-100 rounded-2xl">
+                <p className="text-red-700 font-bold text-sm">مكونات محرمة:</p>
+                <p className="text-red-600">{result.haramIngredients.join('، ')}</p>
+              </div>
+            )}
+          </div>
+
+          <button onClick={() => setResult(null)} className="mt-8 w-full bg-slate-900 text-white py-4 rounded-2xl font-bold active:scale-95 transition-transform">فحص منتج جديد</button>
+        </div>
+      )}
+    </div>
+  );
+}

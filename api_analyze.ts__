@@ -1,0 +1,38 @@
+import { GoogleGenerativeAI, SchemaType } from "@google/generative-ai";
+import type { VercelRequest, VercelResponse } from '@vercel/node';
+
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+  
+  const { base64Data } = req.body;
+  if (!base64Data) return res.status(400).json({ error: 'Missing image' });
+
+  try {
+    const genAI = new GoogleGenerativeAI(process.env.API_KEY || "");
+    const model = genAI.getGenerativeModel({
+      model: "gemini-1.5-flash",
+      generationConfig: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: SchemaType.OBJECT,
+          properties: {
+            status: { type: SchemaType.STRING },
+            reason: { type: SchemaType.STRING },
+            recommendation: { type: SchemaType.STRING },
+            haramIngredients: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } }
+          },
+          required: ["status", "reason", "recommendation"]
+        }
+      }
+    });
+
+    const result = await model.generateContent([
+      { inlineData: { mimeType: "image/jpeg", data: base64Data } },
+      { text: "Analyze food ingredients. Classify as 'halal' or 'haram' (if pork, alcohol, or non-halal additives like E120/carmine are found). Answer in Arabic only." }
+    ]);
+
+    return res.status(200).json(JSON.parse(result.response.text()));
+  } catch (err: any) {
+    return res.status(500).json({ error: "الخدمة غير متوفرة حالياً" });
+  }
+}

@@ -1,0 +1,75 @@
+import React, { useState, useRef } from 'react';
+
+export default function App() {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<any>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64 = (reader.result as string).split(',')[1];
+        analyzeImage(base64);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const analyzeImage = async (base64: string) => {
+    setLoading(true);
+    try {
+      const resp = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ base64Data: base64 })
+      });
+      const data = await resp.json();
+      setResult(data);
+    } catch (err) {
+      alert("حدث خطأ في الاتصال بالخادم");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-50 flex flex-col items-center p-6">
+      <h1 className="text-3xl font-black text-emerald-600 mt-10">HalalScan AI</h1>
+      
+      {!result ? (
+        <div className="mt-20 w-full max-w-sm bg-white p-10 rounded-[3rem] shadow-2xl text-center border-4 border-dashed border-emerald-100">
+          {loading ? (
+            <div className="animate-pulse">
+               <div className="w-16 h-16 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+               <p className="font-bold text-emerald-600">جاري فحص المكونات...</p>
+            </div>
+          ) : (
+            <>
+              <div className="text-7xl mb-6">📸</div>
+              <button 
+                onClick={() => fileInputRef.current?.click()}
+                className="w-full bg-emerald-600 text-white py-5 rounded-2xl font-bold text-xl active:scale-95 transition"
+              >
+                افتح الكاميرا وصوّر
+              </button>
+            </>
+          )}
+          {/* هذا السطر هو الذي يفتح الكاميرا الخلفية للهاتف مباشرة */}
+          <input type="file" ref={fileInputRef} className="hidden" accept="image/*" capture="environment" onChange={handleImageUpload} />
+        </div>
+      ) : (
+        <div className="mt-10 w-full max-w-sm p-8 rounded-[2.5rem] shadow-2xl bg-white border-t-8 border-emerald-500">
+          <h2 className="text-2xl font-black text-center mb-4">النتيجة الشرعية</h2>
+          <div className="space-y-4 text-right">
+             <p><strong>الحالة:</strong> {result.status === 'halal' ? '✅ حلال' : '❌ غير حلال'}</p>
+             <p><strong>التوصية:</strong> {result.recommendation}</p>
+             <p className="text-sm text-slate-500 italic">{result.reason}</p>
+          </div>
+          <button onClick={() => setResult(null)} className="mt-8 w-full bg-slate-900 text-white py-4 rounded-2xl font-bold">فحص منتج آخر</button>
+        </div>
+      )}
+    </div>
+  );
+}
