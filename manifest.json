@@ -1,0 +1,24 @@
+
+{
+  "short_name": "HalalScan",
+  "name": "HalalScan AI - كاشف الحلال الذكي",
+  "description": "Professional AI-powered halal food ingredients analyzer. Snap a photo of product ingredients to instantly detect pork derivatives, alcohol, and doubtful E-numbers.",
+  "icons": [
+    {
+      "src": "/android-chrome-192x192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/android-chrome-512x512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#059669",
+  "background_color": "#f8fafc"
+}

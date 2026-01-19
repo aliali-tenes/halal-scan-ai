@@ -1,0 +1,7 @@
+{
+  "name": "HalalScan AI",
+  "description": "Professional AI-powered halal food ingredients analyzer. Snap a photo of product ingredients to instantly detect pork derivatives, alcohol, and doubtful E-numbers.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
